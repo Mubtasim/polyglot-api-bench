@@ -28,3 +28,9 @@ services:
         postgres:
           condition: service_healthy
     ports: ["8001:8080"]
+
+  rust:
+    build: ./apis/rust
+    image: ghcr.io/mubtasim/polyglot-api-bench-rust:${TAG:-local}
+    <<: *api
+    ports: ["8002:8080"]
