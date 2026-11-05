@@ -1,0 +1,22 @@
+# Added on top of compose.yaml by bench/run.sh: pins every container to the
+# CPUs its profile gives it (bench/profiles/*.env) and adds the load generator.
+services:
+  postgres:
+    cpuset: ${DB_CPUSET:?set by bench/run.sh}
+  go:
+    cpuset: ${API_CPUSET:?set by bench/run.sh}
+  rust:
+    cpuset: ${API_CPUSET:?set by bench/run.sh}
+  dotnet:
+    cpuset: ${API_CPUSET:?set by bench/run.sh}
+  node:
+    cpuset: ${API_CPUSET:?set by bench/run.sh}
+  k6:
+    image: grafana/k6:2.3.0
+    profiles: ["tools"]
+    cpuset: ${K6_CPUSET:?set by bench/run.sh}
+    user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
+    volumes:
+      - ./bench/k6:/scripts:ro
+      - ./bench/data:/data:ro
+      - ${RUN_DIR:?set by bench/run.sh}:/results
