@@ -140,6 +140,9 @@ def summarize(run_dir):
                 row["peak_mem_mib"] = max(m for _, m in samples)
             if tp.get("api"):
                 row["api_cpu_pct"] = statistics.mean(c for c, _ in tp["api"])
+                if row.get("rps_median"):
+                    # CPU seconds per second / requests per second = CPU time per request.
+                    row["cpu_ms_per_req"] = row["api_cpu_pct"] / 100 / row["rps_median"] * 1000
             if tp.get("k6"):
                 row["k6_cpu_pct"] = statistics.mean(c for c, _ in tp["k6"])
                 row["k6_bound"] = row["k6_cpu_pct"] > k6_limit
@@ -149,7 +152,7 @@ def summarize(run_dir):
 
 CSV_FIELDS = ["endpoint", "api", "rps_median", "rps_min", "rps_max", "tp_p50_ms", "tp_p99_ms", "tp_error_pct",
               "target_rate", "lat_rps", "lat_p50_ms", "lat_p95_ms", "lat_p99_ms", "lat_max_ms", "lat_error_pct",
-              "dropped", "peak_mem_mib", "api_cpu_pct", "k6_cpu_pct", "k6_bound"]
+              "dropped", "peak_mem_mib", "api_cpu_pct", "cpu_ms_per_req", "k6_cpu_pct", "k6_bound"]
 
 
 # ---------- formatting ----------
@@ -350,8 +353,8 @@ def markdown(host, rows, by_ep, startup):
         lines += ["", f"## `{path}`", "", what[0].upper() + what[1:] + ".", "",
                   f"![{path} results](charts/{ep}.svg)", "",
                   "| API | Req/s median (min–max) | p50 / p99 ms at max load | Errors | "
-                  "p50 / p95 / p99 / max ms at fixed rate | Dropped | Peak MiB | API CPU % | k6 CPU % |",
-                  "|---|---:|---:|---:|---:|---:|---:|---:|---:|"]
+                  "p50 / p95 / p99 / max ms at fixed rate | Dropped | Peak MiB | API CPU % | CPU ms per request | k6 CPU % |",
+                  "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|"]
         for r in ep_rows:
             bound = " ⚠️ load-generator bound" if r.get("k6_bound") else ""
             errors = max(r.get("tp_error_pct") or 0, r.get("lat_error_pct") or 0)
@@ -361,7 +364,7 @@ def markdown(host, rows, by_ep, startup):
                 f"{fmt_ms(r.get('tp_p50_ms'))} / {fmt_ms(r.get('tp_p99_ms'))} | {errors:.2f}% | "
                 f"{fmt_ms(r.get('lat_p50_ms'))} / {fmt_ms(r.get('lat_p95_ms'))} / {fmt_ms(r.get('lat_p99_ms'))} / "
                 f"{fmt_ms(r.get('lat_max_ms'))} | {fmt_num(r.get('dropped'))} | {fmt_num(r.get('peak_mem_mib'))} | "
-                f"{fmt_num(r.get('api_cpu_pct'))} | {fmt_num(r.get('k6_cpu_pct'))}{bound} |")
+                f"{fmt_num(r.get('api_cpu_pct'))} | {fmt_ms(r.get('cpu_ms_per_req'))} | {fmt_num(r.get('k6_cpu_pct'))}{bound} |")
         if any(r.get("k6_bound") for r in ep_rows):
             lines += ["", f"⚠️ k6 averaged over {int(K6_BOUND_SHARE * 100)}% of its {host.get('k6Cpus')} CPUs: "
                       "the load generator, not the API, may have set the ceiling for the marked rows."]
@@ -374,7 +377,7 @@ def markdown(host, rows, by_ep, startup):
         idle = s[0]["idleMem"] if s else "–"
         size = host.get("images", {}).get(a, {}).get("sizeMB")
         lines.append(f"| {LABELS[a]} | {fmt_num(size, 1)} | {fmt_num(ms)} | {idle} |")
-    lines += ["", "CPU % is from `docker stats`: 100% = one logical CPU fully busy. "
+    lines += ["", "CPU % is from `docker stats`: 100% = one logical CPU fully busy. CPU ms per request = average API CPU during the throughput runs ÷ median requests/s; it compares efficiency even when an API was not the bottleneck. "
               "Startup is measured from `docker compose up` to the first successful `/health`, "
               "so it includes container creation."]
     return "\n".join(lines) + "\n"
