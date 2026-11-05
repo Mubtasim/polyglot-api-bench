@@ -6,6 +6,7 @@
 #   PROFILE=vm bench/run.sh          use bench/profiles/vm.env
 #   APIS="go rust" ENDPOINTS="hash primes" bench/run.sh
 #   PULL=1 bench/run.sh              pull published images instead of building
+#   BUILD=0 bench/run.sh             use the images already on this machine
 #
 # Results go to results/<date>-<profile>/ (RESULTS.md, summary.csv, charts/).
 set -euo pipefail
@@ -139,7 +140,7 @@ python3 tools/gen_payload.py --out bench/data/orders.json > /dev/null
 log "run $RUN_ID: profile $PROFILE (API on CPUs $API_CPUSET, Postgres $DB_CPUSET, k6 $K6_CPUSET)"
 if [[ "${PULL:-0}" == 1 ]]; then
   "${COMPOSE[@]}" pull "${APIS[@]}"
-else
+elif [[ "${BUILD:-1}" == 1 ]]; then
   for api in "${APIS[@]}"; do "${COMPOSE[@]}" build "$api"; done # one at a time: builds are heavy
 fi
 "${COMPOSE[@]}" pull -q k6 postgres
