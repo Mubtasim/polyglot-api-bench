@@ -13,6 +13,13 @@ const MAX_BODY_BYTES: usize = 10 * 1024 * 1024;
 
 #[tokio::main]
 async fn main() {
+    // Each connection needs a file descriptor. Containers start processes with
+    // a soft limit of 1024 open files; Go, .NET and Node.js raise it to the hard
+    // limit at startup, a Rust program does not. Without this, accept() fails
+    // with "too many open files" past ~1000 connections (see the README).
+    let nofile = rlimit::increase_nofile_limit(u64::MAX).expect("raise open-file limit");
+    println!("open-file limit: {nofile}");
+
     let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
     let db = PgPoolOptions::new()
         .max_connections(20)
