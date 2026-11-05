@@ -48,6 +48,14 @@ class Rates(unittest.TestCase):
         self.assertEqual(report.target_rates({("go", "hash"): [k6_result(1.2)]}), {"hash": 1})
 
 
+class Compromised(unittest.TestCase):
+    def test_errors_or_many_dropped(self):
+        self.assertTrue(report.latency_compromised({"lat_p99_ms": 5, "lat_error_pct": 0.2, "dropped": 0, "lat_requests": 100}))
+        self.assertTrue(report.latency_compromised({"lat_p99_ms": 5, "lat_error_pct": 0, "dropped": 2, "lat_requests": 98}))
+        self.assertFalse(report.latency_compromised({"lat_p99_ms": 5, "lat_error_pct": 0, "dropped": 1, "lat_requests": 999}))
+        self.assertFalse(report.latency_compromised({}))
+
+
 class Build(unittest.TestCase):
     def test_writes_csv_markdown_and_charts(self):
         with tempfile.TemporaryDirectory() as d:

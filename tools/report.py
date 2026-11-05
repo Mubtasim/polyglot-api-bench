@@ -26,6 +26,15 @@ ENDPOINT_INFO = {
 }
 LATENCY_FRACTION = 0.5
 K6_BOUND_SHARE = 0.9
+DROPPED_SHARE = 0.01
+
+
+def latency_compromised(row):
+    """True when the fixed-rate test lost requests: errors, or > DROPPED_SHARE never sent."""
+    if row.get("lat_p99_ms") is None:
+        return False
+    scheduled = (row.get("lat_requests") or 0) + (row.get("dropped") or 0)
+    return (row.get("lat_error_pct") or 0) > 0 or (scheduled and (row.get("dropped") or 0) / scheduled > DROPPED_SHARE)
 
 NAME_RE = re.compile(rf"^(?P<api>[a-z]+)-(?P<ep>{'|'.join(ENDPOINTS)})-(?P<phase>throughput|latency)(?:-(?P<rep>\d+))?$")
 MEM_RE = re.compile(r"^([\d.]+)\s*([KMG]i?B|B)$")
@@ -123,7 +132,8 @@ def summarize(run_dir):
                 row.update(target_rate=lat.get("targetRate"), lat_rps=lat["rps"],
                            lat_p50_ms=lat["latencyMs"]["p50"], lat_p95_ms=lat["latencyMs"]["p95"],
                            lat_p99_ms=lat["latencyMs"]["p99"], lat_max_ms=lat["latencyMs"]["max"],
-                           lat_error_pct=100 * lat["errorRate"], dropped=lat["droppedIterations"])
+                           lat_error_pct=100 * lat["errorRate"], dropped=lat["droppedIterations"],
+                           lat_requests=lat["requests"])
             samples = [s for phase in ("throughput", "latency") for s in stats.get((api, ep, phase), {}).get("api", [])]
             tp = stats.get((api, ep, "throughput"), {})
             if samples:
@@ -323,10 +333,17 @@ def markdown(host, rows, by_ep, startup):
     lines += ["", "p99 latency in ms at the same fixed rate for every API (lower is better):", "",
               "| Endpoint | Rate (req/s) | " + " | ".join(SHORT[a] for a in apis) + " |",
               "|---|---:|" + "---:|" * len(apis)]
+    marked = False
     for ep, ep_rows in by_ep.items():
-        vals = {r["api"]: r.get("lat_p99_ms") for r in ep_rows}
+        cells = {}
+        for r in ep_rows:
+            cells[r["api"]] = fmt_ms(r.get("lat_p99_ms")) + (" ⚠️" if latency_compromised(r) else "")
+            marked = marked or latency_compromised(r)
         rate = next((r.get("target_rate") for r in ep_rows if r.get("target_rate")), None)
-        lines.append(f"| `{ep}` | {fmt_num(rate)} | " + " | ".join(fmt_ms(vals.get(a)) for a in apis) + " |")
+        lines.append(f"| `{ep}` | {fmt_num(rate)} | " + " | ".join(cells.get(a, "–") for a in apis) + " |")
+    if marked:
+        lines += ["", f"⚠️ Requests failed, or more than {int(DROPPED_SHARE * 100)}% of the scheduled requests "
+                  "could not be sent: the p99 only covers the requests that completed. See the endpoint's table."]
 
     for ep, ep_rows in by_ep.items():
         path, what = ENDPOINT_INFO[ep]
