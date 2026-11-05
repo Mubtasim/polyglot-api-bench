@@ -1,6 +1,6 @@
 # How an API uses CPU, threads and memory
 
-Background for reading the results. Each section ends with the rough numbers worth remembering. The numbers here are estimates; the benchmark measures the real ones, and [the results](../results/) replace any estimate that turns out wrong.
+Background for reading the results. Each section ends with the rough numbers worth remembering. The sections give estimates made before the first run; section 7 sets them against what the [laptop run](../results/2026-11-06-laptop/RESULTS.md) measured.
 
 The reference machine is the laptop the first run used: Intel i5-7200U (2 cores, 4 threads), 8 GB RAM.
 
@@ -137,17 +137,24 @@ Then **measure**, because estimates are often off by 2–3×: load-test at the e
 
 ## 7. Numbers to keep in your head
 
-| What | Roughly |
-|---|---|
-| Main-memory access | ~100 ns |
-| OS thread context switch | 1–5 µs |
-| Goroutine or async-task switch | 100–200 ns |
-| Read 1 MB sequentially from memory | ~50–250 µs |
-| Simple Postgres query on the same machine | 0.2–1 ms |
-| Round trip within one data center | ~0.5 ms |
-| bcrypt, cost 10 | 50–100 ms |
-| Parse 1 MB of JSON | 5–20 ms |
-| Idle memory: Rust / Go / .NET / Node.js | ~5 / ~15 / ~60 / ~70 MB |
-| Postgres memory per connection | 5–10 MB |
-| Hyper-threading gain | +20–30% |
-| Little's law | in flight = rate × latency |
+Estimates, and what the laptop run measured (one physical core per API; CPU time is per request, from `docker stats`).
+
+| What | Estimate | Measured |
+|---|---|---|
+| Main-memory access | ~100 ns | |
+| OS thread context switch | 1–5 µs | |
+| Goroutine or async-task switch | 100–200 ns | |
+| Read 1 MB sequentially from memory | ~50–250 µs | |
+| Simple Postgres query on the same machine | 0.2–1 ms | 0.64 ms p50 for HTTP + query of 50 rows (Go, at 1,268 req/s) |
+| Round trip within one data center | ~0.5 ms | |
+| bcrypt, cost 10 | 50–100 ms | 72–77 ms (Node.js native, Go, Rust); 134 ms (.NET's managed library) |
+| `/hash` ceiling on one core | ~12–25/s | 26–28/s (14.8/s for .NET) |
+| Sieve to 1,000,000 | 2–10 ms | 2.5–2.6 ms on one thread alone (Go, Rust plain loop); 3.9 ms with Rust's `..=` iterator |
+| Parse and aggregate 574 KB of JSON | 5–20 ms | 10 ms (Node.js) · 13 ms (Rust) · 17 ms (.NET) · 25 ms (Go) |
+| Memory right after start: Rust / Go / .NET / Node.js | | 0.9 / 2.2 / 21 / 51 MiB |
+| Memory after the first requests (pools, JIT) | ~5 / ~15 / ~60 / ~70 MB | 16 / 20 / 56 / 66 MiB |
+| Peak memory during `/json`: Rust / Go / .NET / Node.js | | 37 / 55 / 106 / 159 MiB |
+| Postgres memory per connection | 5–10 MB | |
+| Hyper-threading gain | +20–30% | |
+| Little's law | in flight = rate × latency | `/hash` at saturation: 32 clients ÷ 26 req/s = 1.2 s; measured p50 1.2 s |
+| Open files per connection | 1 | 1,024 soft limit in containers: Rust failed past ~1,000 connections until it raised the limit |
