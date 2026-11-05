@@ -22,7 +22,7 @@ services:
     <<: &api
       environment:
         DATABASE_URL: postgres://bench:bench@postgres:5432/bench
-        DB_CONNECTION: Host=postgres;Username=bench;Password=bench;Database=bench;Maximum Pool Size=20
+        DB_CONNECTION: Host=postgres;Username=bench;Password=bench;Database=bench;Maximum Pool Size=20;Gss Encryption Mode=Disable
       mem_limit: 1g
       depends_on:
         postgres:
@@ -34,3 +34,15 @@ services:
     image: ghcr.io/mubtasim/polyglot-api-bench-rust:${TAG:-local}
     <<: *api
     ports: ["8002:8080"]
+
+  dotnet:
+    build: ./apis/dotnet
+    image: ghcr.io/mubtasim/polyglot-api-bench-dotnet:${TAG:-local}
+    <<: *api
+    ports: ["8003:8080"]
+
+  node:
+    build: ./apis/node
+    image: ghcr.io/mubtasim/polyglot-api-bench-node:${TAG:-local}
+    <<: *api
+    ports: ["8004:8080"]
