@@ -1,0 +1,17 @@
+{
+  "endpoint": "fanout",
+  "phase": "throughput",
+  "vus": 256,
+  "targetRate": null,
+  "requests": 91115,
+  "rps": 4544.269785112319,
+  "errorRate": 0,
+  "droppedIterations": 0,
+  "latencyMs": {
+    "avg": 56.01239824083916,
+    "p50": 51.428131,
+    "p95": 80.33891750000001,
+    "p99": 109.71440992000001,
+    "max": 175.722822
+  }
+}

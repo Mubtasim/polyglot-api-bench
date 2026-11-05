@@ -1,0 +1,17 @@
+{
+  "endpoint": "hash",
+  "phase": "throughput",
+  "vus": 32,
+  "targetRate": null,
+  "requests": 585,
+  "rps": 27.74007885518484,
+  "errorRate": 0,
+  "droppedIterations": 0,
+  "latencyMs": {
+    "avg": 1124.8122004170953,
+    "p50": 1148.804472,
+    "p95": 1185.6376294,
+    "p99": 1203.0993838799998,
+    "max": 1218.893663
+  }
+}

@@ -1,5 +1,4 @@
 bench/data/
-results/*/raw/
 apis/rust/target/
 apis/node/node_modules/
 apis/node/dist/

@@ -1,0 +1,17 @@
+{
+  "endpoint": "health",
+  "phase": "throughput",
+  "vus": 64,
+  "targetRate": null,
+  "requests": 256828,
+  "rps": 12840.082398894534,
+  "errorRate": 0,
+  "droppedIterations": 0,
+  "latencyMs": {
+    "avg": 4.90116577906623,
+    "p50": 3.955635,
+    "p95": 12.278022399999998,
+    "p99": 21.13778348000001,
+    "max": 53.763766
+  }
+}
