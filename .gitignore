@@ -1,0 +1,8 @@
+bench/data/
+results/*/raw/
+apis/rust/target/
+apis/node/node_modules/
+apis/node/dist/
+apis/dotnet/bin/
+apis/dotnet/obj/
+__pycache__/
