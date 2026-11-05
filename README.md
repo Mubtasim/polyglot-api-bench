@@ -4,7 +4,7 @@
 
 The same small HTTP API built four times, in **Go (Gin)**, **Rust (Axum)**, **.NET (ASP.NET Core Minimal APIs)** and **Node.js (NestJS on Fastify)**, then measured under identical, reproducible conditions. The goal is to explain *where* the runtimes differ and *why*, not to crown a winner.
 
-Code written with AI tools under my design and review. The design is in [docs/design.md](docs/design.md); the background on CPU, threads and memory that the analysis relies on is in [docs/cpu-threads-memory.md](docs/cpu-threads-memory.md).
+Code written with AI tools under my design and review. The design is in [docs/design.md](docs/design.md); the background on CPU, threads and memory that the analysis relies on is in [docs/cpu-threads-memory.md](docs/cpu-threads-memory.md); what it taught, as a checklist for any service in any language, is in [docs/production-checklist.md](docs/production-checklist.md).
 
 ## What is measured
 
