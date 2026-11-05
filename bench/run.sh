@@ -25,7 +25,9 @@ REPEATS="${REPEATS:-3}"
 
 # shellcheck disable=SC1090
 set -a; source "bench/profiles/$PROFILE.env"; set +a
-RUN_ID="${RUN_ID:-$(date +%Y-%m-%d)-$PROFILE$([[ "${QUICK:-0}" == 1 ]] && echo -quick)}"
+SUFFIX=""
+[[ "${QUICK:-0}" == 1 ]] && SUFFIX=-quick
+RUN_ID="${RUN_ID:-$(date +%Y-%m-%d)-$PROFILE$SUFFIX}"
 export RUN_DIR="$PWD/results/$RUN_ID" HOST_UID="$(id -u)" HOST_GID="$(id -g)"
 export TAG="${TAG:-$([[ "${PULL:-0}" == 1 ]] && echo latest || echo local)}"
 
