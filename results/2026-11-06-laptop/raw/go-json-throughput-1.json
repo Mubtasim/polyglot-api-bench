@@ -1,0 +1,17 @@
+{
+  "endpoint": "json",
+  "phase": "throughput",
+  "vus": 16,
+  "targetRate": null,
+  "requests": 1564,
+  "rps": 77.57643896227367,
+  "errorRate": 0,
+  "droppedIterations": 0,
+  "latencyMs": {
+    "avg": 205.1360946560104,
+    "p50": 196.0317585,
+    "p95": 352.01157894999994,
+    "p99": 435.3718983399999,
+    "max": 583.76341
+  }
+}

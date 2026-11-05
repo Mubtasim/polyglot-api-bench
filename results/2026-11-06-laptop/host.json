@@ -1,0 +1,44 @@
+{
+  "runId": "2026-11-06-laptop",
+  "profile": "laptop",
+  "date": "2026-11-06T01:09:00+06:00",
+  "cpu": "Intel(R) Core(TM) i5-7200U CPU @ 2.50GHz",
+  "logicalCpus": 4,
+  "memoryGiB": 7.1,
+  "kernel": "7.0.0-42-generic",
+  "docker": "29.9.1",
+  "cpusets": {
+    "api": "0,2",
+    "postgres": "1,3",
+    "k6": "1,3"
+  },
+  "k6Cpus": 2,
+  "durations": {
+    "throughput": "20s",
+    "latency": "30s",
+    "warmup": "10s",
+    "repeats": 3
+  },
+  "images": {
+    "go": {
+      "ref": "ghcr.io/mubtasim/polyglot-api-bench-go:local",
+      "id": "sha256:5f4b236f7ca4eb2d9a68b29280e6faaca39b2fbcd9f4e6e0abfc0e4df1acd1d4",
+      "sizeMB": 40.7
+    },
+    "rust": {
+      "ref": "ghcr.io/mubtasim/polyglot-api-bench-rust:local",
+      "id": "sha256:427676f0512760788469874f1b33550912553bfaaec04c371707e441de44fc49",
+      "sizeMB": 46.8
+    },
+    "dotnet": {
+      "ref": "ghcr.io/mubtasim/polyglot-api-bench-dotnet:local",
+      "id": "sha256:acd87fd297a028ec2f9dedc0a99e8a6b547f827af8223aa387cf555785cc32c4",
+      "sizeMB": 184.0
+    },
+    "node": {
+      "ref": "ghcr.io/mubtasim/polyglot-api-bench-node:local",
+      "id": "sha256:45f8bcad243c4dc21e8771127025bccfa629227819e56885e358bcd9a05ea97b",
+      "sizeMB": 394.6
+    }
+  }
+}

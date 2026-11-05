@@ -1,0 +1,171 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  tools:
+    name: Tools (Python unit tests)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+      - run: python -m unittest discover -s tools -v
+
+  go:
+    name: Lint Go
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apis/go
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version: "1.27.3"
+          cache-dependency-path: apis/go/go.sum
+      - name: gofmt
+        run: test -z "$(gofmt -l .)" || { gofmt -d .; exit 1; }
+      - run: go vet ./...
+
+  rust:
+    name: Lint Rust
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apis/rust
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install Rust 1.99.1
+        run: |
+          rustup toolchain install 1.99.1 --profile minimal --component rustfmt,clippy
+          rustup default 1.99.1
+      - run: cargo fmt --check
+      - run: cargo clippy --locked -- -D warnings
+
+  dotnet:
+    name: Lint .NET
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apis/dotnet
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: "10.0.403"
+      - run: dotnet restore --locked-mode
+      - name: Build (warnings are errors)
+        run: dotnet build -c Release --no-restore
+      - run: dotnet format --verify-no-changes --no-restore
+
+  node:
+    name: Lint Node.js
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apis/node
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "26.13.0"
+          cache: npm
+          cache-dependency-path: apis/node/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+
+  parity:
+    name: Build images, parity check, smoke benchmark
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: docker/setup-buildx-action@v4
+      - name: Build the four images
+        uses: docker/bake-action@v7
+        with:
+          source: .
+          files: compose.yaml
+          targets: go,rust,dotnet,node
+          load: true
+          set: |
+            go.cache-from=type=gha,scope=go
+            go.cache-to=type=gha,scope=go,mode=max
+            rust.cache-from=type=gha,scope=rust
+            rust.cache-to=type=gha,scope=rust,mode=max
+            dotnet.cache-from=type=gha,scope=dotnet
+            dotnet.cache-to=type=gha,scope=dotnet,mode=max
+            node.cache-from=type=gha,scope=node
+            node.cache-to=type=gha,scope=node,mode=max
+      - name: Start Postgres and the four APIs
+        run: docker compose up -d --wait postgres go rust dotnet node
+      - name: Parity check
+        run: >
+          python3 tools/parity.py
+          --api go=http://localhost:8001 --api rust=http://localhost:8002
+          --api dotnet=http://localhost:8003 --api node=http://localhost:8004
+      - name: Smoke benchmark (keeps the harness working)
+        run: |
+          docker compose stop go rust dotnet node
+          QUICK=1 BUILD=0 APIS="go node" ENDPOINTS="health users" RUN_ID=ci-smoke bench/run.sh
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: smoke-results
+          path: results/ci-smoke
+          if-no-files-found: ignore
+      - name: Container logs on failure
+        if: failure()
+        run: docker compose logs --no-color --tail 100
+
+  publish:
+    name: Publish images to GHCR
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [tools, go, rust, dotnet, node, parity]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and push (tags latest and the commit SHA)
+        uses: docker/bake-action@v7
+        env:
+          TAG: latest
+        with:
+          source: .
+          files: compose.yaml
+          targets: go,rust,dotnet,node
+          push: true
+          set: |
+            *.labels.org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            go.tags=ghcr.io/mubtasim/polyglot-api-bench-go:latest
+            go.tags=ghcr.io/mubtasim/polyglot-api-bench-go:${{ github.sha }}
+            rust.tags=ghcr.io/mubtasim/polyglot-api-bench-rust:latest
+            rust.tags=ghcr.io/mubtasim/polyglot-api-bench-rust:${{ github.sha }}
+            dotnet.tags=ghcr.io/mubtasim/polyglot-api-bench-dotnet:latest
+            dotnet.tags=ghcr.io/mubtasim/polyglot-api-bench-dotnet:${{ github.sha }}
+            node.tags=ghcr.io/mubtasim/polyglot-api-bench-node:latest
+            node.tags=ghcr.io/mubtasim/polyglot-api-bench-node:${{ github.sha }}
+            go.cache-from=type=gha,scope=go
+            rust.cache-from=type=gha,scope=rust
+            dotnet.cache-from=type=gha,scope=dotnet
+            node.cache-from=type=gha,scope=node

@@ -1,0 +1,17 @@
+{
+  "endpoint": "users",
+  "phase": "throughput",
+  "vus": 64,
+  "targetRate": null,
+  "requests": 88632,
+  "rps": 4430.5962975884,
+  "errorRate": 0,
+  "droppedIterations": 0,
+  "latencyMs": {
+    "avg": 14.242727854567008,
+    "p50": 12.6143895,
+    "p95": 28.376478199999998,
+    "p99": 39.70874199000005,
+    "max": 69.772324
+  }
+}

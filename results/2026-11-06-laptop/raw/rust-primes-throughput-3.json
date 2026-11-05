@@ -1,0 +1,17 @@
+{
+  "endpoint": "primes",
+  "phase": "throughput",
+  "vus": 32,
+  "targetRate": null,
+  "requests": 4766,
+  "rps": 236.84144855476342,
+  "errorRate": 0,
+  "droppedIterations": 0,
+  "latencyMs": {
+    "avg": 134.55031771632443,
+    "p50": 137.7296795,
+    "p95": 196.77905675,
+    "p99": 206.66986500000002,
+    "max": 217.576683
+  }
+}
